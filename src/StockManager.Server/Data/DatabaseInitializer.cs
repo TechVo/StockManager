@@ -30,8 +30,10 @@ public static class DatabaseInitializer
             return;
         }
 
-        // load the test data from the prepared file
+        // run the prepared SQL file in one transaction, so that an error does not leave a part of the data
         var seedPath = Path.Combine(app.Environment.ContentRootPath, app.Configuration["SeedDataPath"]!);
-        await DbSeeder.SeedAsync(db, seedPath);
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlRawAsync(await File.ReadAllTextAsync(seedPath));
+        await transaction.CommitAsync();
     }
 }

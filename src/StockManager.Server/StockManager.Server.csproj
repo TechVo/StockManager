@@ -9,6 +9,11 @@
     <ProjectReference Include="..\StockManager.Contracts\StockManager.Contracts.csproj" />
   </ItemGroup>
 
+  <!-- the test data is read when the application starts -->
+  <ItemGroup>
+    <Content Include="Data\seed.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- the server is built by every full build, so the diagram is rendered once and in one place -->
   <PropertyGroup>
     <ArchitectureDiagramBase>$(MSBuildThisFileDirectory)..\..\docs\architecture</ArchitectureDiagramBase>

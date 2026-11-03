@@ -5,7 +5,7 @@ using StockManager.Server.Data;
 namespace StockManager.Server.Services;
 
 /// <summary>
-/// Application logic behind the REST API. Reads the options for the filter menu,
+/// Application logic behind the REST API. Reads the options for the filter menu and the details of records,
 /// reads the grid rows that match a filter and changes stock quantities.
 /// </summary>
 public sealed class StockService
@@ -29,6 +29,27 @@ public sealed class StockService
     /// <summary>Returns all products as filter options, with their codes.</summary>
     public Task<List<ProductDto>> GetProductsAsync(CancellationToken cancellationToken) =>
         _db.Products.Select(product => new ProductDto(product.Id, product.Code, product.Name)).ToListAsync(cancellationToken);
+
+    /// <summary>Returns the detail of a client, or null if the code does not exist.</summary>
+    public Task<RecordDetailDto?> GetClientDetailAsync(string code, CancellationToken cancellationToken) =>
+        _db.Clients
+            .Where(client => client.Code == code)
+            .Select(client => new RecordDetailDto(client.Id, client.Code, client.Name, client.Categories.Select(category => category.Name).ToList()))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    /// <summary>Returns the detail of a category, or null if the code does not exist.</summary>
+    public Task<RecordDetailDto?> GetCategoryDetailAsync(string code, CancellationToken cancellationToken) =>
+        _db.Categories
+            .Where(category => category.Code == code)
+            .Select(category => new RecordDetailDto(category.Id, category.Code, category.Name, new List<string>()))
+            .FirstOrDefaultAsync(cancellationToken);
+
+    /// <summary>Returns the detail of a product, or null if the code does not exist.</summary>
+    public Task<RecordDetailDto?> GetProductDetailAsync(string code, CancellationToken cancellationToken) =>
+        _db.Products
+            .Where(product => product.Code == code)
+            .Select(product => new RecordDetailDto(product.Id, product.Code, product.Name, product.Categories.Select(category => category.Name).ToList()))
+            .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>Returns the grid rows that match the filter.</summary>
     public async Task<List<StockRowDto>> GetStockAsync(StockFilter filter, CancellationToken cancellationToken)

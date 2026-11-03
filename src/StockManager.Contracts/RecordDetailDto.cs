@@ -1,7 +1,7 @@
 namespace StockManager.Contracts;
 
 /// <summary>
-/// Detail of a client, a category or a product. <see cref="CategoryCodes"/> contains the assigned categories
-/// and is empty for a category, because a category has no categories.
+/// Detail of a client, a category or a product. <see cref="Id"/> selects the stock rows of the record,
+/// and <see cref="Categories"/> contains the names of its categories and is empty for a category.
 /// </summary>
-public sealed record RecordDetailDto(string Code, string Name, IReadOnlyList<string> CategoryCodes);
+public sealed record RecordDetailDto(int Id, string Code, string Name, IReadOnlyList<string> Categories);

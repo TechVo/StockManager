@@ -27,6 +27,16 @@ else
     private static readonly GridSort<StockRowDto> ByQuantity =
         GridSort<StockRowDto>.ByAscending(row => row.Quantity);
 
+    /// <summary>Returns the rows with a saved quantity, for pages that keep sorting by quantity correct.</summary>
+    public static IQueryable<StockRowDto> WithSavedQuantity(IQueryable<StockRowDto> rows, (StockRowDto Row, int Quantity) saved) =>
+        rows
+            .AsEnumerable()
+            .Select(row => row.ClientId == saved.Row.ClientId && row.ProductId == saved.Row.ProductId
+                ? row with { Quantity = saved.Quantity }
+                : row)
+            .ToList()
+            .AsQueryable();
+
     [Parameter, EditorRequired]
     public required IQueryable<StockRowDto> Rows { get; set; }
 

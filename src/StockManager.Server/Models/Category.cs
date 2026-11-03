@@ -5,7 +5,7 @@ public sealed class Category
 {
     public int Id { get; set; }
 
-    /// <summary>Stable reference to the category in the form <c>KAT_000001</c>. The database generates it from the id and it cannot be changed.</summary>
+    /// <summary>Stable reference to the category. The database generates it from the id and it cannot be changed.</summary>
     public string Code { get; private set; } = null!;
 
     public required string Name { get; set; }

@@ -57,7 +57,7 @@ public sealed class StockEndpointsTests : IDisposable
     }
 
     /// <summary>
-    /// The category endpoint returns a generated code for each category, numbered in the order of the seed file.
+    /// The category endpoint returns the code from the seed for each category.
     /// </summary>
     [Fact]
     public async Task Categories_ReturnCodeAndName()
@@ -93,7 +93,7 @@ public sealed class StockEndpointsTests : IDisposable
     }
 
     /// <summary>
-    /// The product endpoint returns a generated code for each product, numbered in the order of the seed file.
+    /// The product endpoint returns the code from the seed for each product.
     /// </summary>
     [Fact]
     public async Task Products_ReturnCodeAndName()
@@ -129,31 +129,34 @@ public sealed class StockEndpointsTests : IDisposable
     }
 
     /// <summary>
-    /// A new category gets the next code, and the code of a deleted category is not used again.
+    /// A new record gets the next code from the database, and the application can read it right after the save.
     /// </summary>
-    [Fact]
-    public async Task NewCategory_GetsNextCodeAndDeletedCodeIsNotReused()
+    [Theory]
+    [InlineData("client", "KLI_000004")]
+    [InlineData("category", "KAT_000004")]
+    [InlineData("product", "PROD_000004")]
+    public async Task NewRecord_GetsNextCode(string type, string expectedCode)
     {
         using var scope = _host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // delete the category with the highest number from the seed
-        db.Remove(await db.Categories.SingleAsync(category => category.Code == "KAT_000003"));
+        // save the record without a code
+        var entry = db.Add<object>(type switch
+        {
+            "client" => new Client { Name = "New name" },
+            "category" => new Category { Name = "New name" },
+            _ => new Product { Name = "New name" },
+        });
         await db.SaveChangesAsync();
 
-        // add a new category
-        var category = new Category { Name = "New category" };
-        db.Add(category);
-        await db.SaveChangesAsync();
-
-        Assert.Equal("KAT_000004", category.Code);
+        Assert.Equal(expectedCode, entry.Property<string>("Code").CurrentValue);
     }
 
     /// <summary>
-    /// A new product gets the next code, and the code of a deleted product is not used again.
+    /// The code of a deleted record is not used again for a new record.
     /// </summary>
     [Fact]
-    public async Task NewProduct_GetsNextCodeAndDeletedCodeIsNotReused()
+    public async Task DeletedCode_IsNotUsedAgain()
     {
         using var scope = _host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -171,18 +174,20 @@ public sealed class StockEndpointsTests : IDisposable
     }
 
     /// <summary>
-    /// The database rejects a direct SQL change of a code, because the column is generated.
+    /// The database rejects a direct SQL change of a code in each table, because the column is generated.
     /// </summary>
     [Theory]
-    [InlineData("UPDATE Categories SET Code = 'CHANGED' WHERE Id = 1")]
-    [InlineData("UPDATE Products SET Code = 'CHANGED' WHERE Id = 1")]
+    [InlineData("UPDATE Clients SET Code = 'KLI_000099' WHERE Id = 1")]
+    [InlineData("UPDATE Categories SET Code = 'KAT_000099' WHERE Id = 1")]
+    [InlineData("UPDATE Products SET Code = 'PROD_000099' WHERE Id = 1")]
     public async Task Code_CannotBeChangedBySql(string sql)
     {
         using var scope = _host.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            db.Database.ExecuteSqlRawAsync(sql));
+        var exception = await Assert.ThrowsAsync<SqliteException>(() => db.Database.ExecuteSqlRawAsync(sql));
+
+        Assert.Contains("generated column", exception.Message);
     }
 
     /// <summary>

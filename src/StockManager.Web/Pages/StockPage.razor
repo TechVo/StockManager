@@ -97,14 +97,6 @@
     }
 
     /// <summary>Updates the saved quantity in the local rows, so that sorting by quantity stays correct.</summary>
-    private void OnQuantitySaved((StockRowDto Row, int Quantity) saved)
-    {
-        _rows = _rows!
-            .AsEnumerable()
-            .Select(row => row.ClientId == saved.Row.ClientId && row.ProductId == saved.Row.ProductId
-                ? row with { Quantity = saved.Quantity }
-                : row)
-            .ToList()
-            .AsQueryable();
-    }
+    private void OnQuantitySaved((StockRowDto Row, int Quantity) saved) =>
+        _rows = StockGrid.WithSavedQuantity(_rows!, saved);
 }

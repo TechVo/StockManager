@@ -5,13 +5,12 @@ using StockManager.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// register problem details responses, request validation, the database and the services
+// register problem details responses, request validation, the database and the stock service
 builder.Services.AddProblemDetails();
 builder.Services.AddValidation();
 builder.Services.AddDbContext<AppDbContext>((services, options) =>
     options.UseSqlite(services.GetRequiredService<IConfiguration>().GetConnectionString("Stock")));
 builder.Services.AddScoped<StockService>();
-builder.Services.AddScoped<RecordService>();
 
 var app = builder.Build();
 
@@ -25,6 +24,5 @@ app.MapFallbackToFile("/detail/{code}", "index.html");
 
 // expose the REST API
 app.MapStockEndpoints();
-app.MapRecordEndpoints();
 
 app.Run();

@@ -14,23 +14,12 @@ public sealed class TestDatabase : IDisposable
     /// Beta with Electronics and Office, Gamma with Garden only.
     /// </summary>
     public const string DefaultSeed = """
-        {
-          "categories": [
-            { "code": "KAT_000001", "name": "Electronics" },
-            { "code": "KAT_000002", "name": "Office" },
-            { "code": "KAT_000003", "name": "Garden" }
-          ],
-          "products": [
-            { "code": "PROD_000001", "name": "Mouse", "categories": ["KAT_000001", "KAT_000002"] },
-            { "code": "PROD_000002", "name": "Paper", "categories": ["KAT_000002"] },
-            { "code": "PROD_000003", "name": "Hose", "categories": ["KAT_000003"] }
-          ],
-          "clients": [
-            { "name": "Alpha", "categories": ["KAT_000001"], "stock": { "PROD_000001": 5 } },
-            { "name": "Beta", "categories": ["KAT_000001", "KAT_000002"], "stock": { "PROD_000001": 7 } },
-            { "name": "Gamma", "categories": ["KAT_000003"], "stock": { "PROD_000003": 9 } }
-          ]
-        }
+        INSERT INTO Categories (Id, Name) VALUES (1, 'Electronics'), (2, 'Office'), (3, 'Garden');
+        INSERT INTO Products (Id, Name) VALUES (1, 'Mouse'), (2, 'Paper'), (3, 'Hose');
+        INSERT INTO Clients (Id, Name) VALUES (1, 'Alpha'), (2, 'Beta'), (3, 'Gamma');
+        INSERT INTO CategoryProduct (CategoriesId, ProductsId) VALUES (1, 1), (2, 1), (2, 2), (3, 3);
+        INSERT INTO CategoryClient (CategoriesId, ClientsId) VALUES (1, 1), (1, 2), (2, 2), (3, 3);
+        INSERT INTO StockItems (ClientId, ProductId, Quantity) VALUES (1, 1, 5), (2, 1, 7), (2, 2, 0), (3, 3, 9);
         """;
 
     private readonly string _folder = Directory.CreateTempSubdirectory("stock-manager-tests-").FullName;
@@ -41,7 +30,13 @@ public sealed class TestDatabase : IDisposable
         File.WriteAllText(SeedPath, seed);
     }
 
-    private string SeedPath => Path.Combine(_folder, "seed.json");
+    private string SeedPath => Path.Combine(_folder, "seed.sql");
+
+    /// <summary>Replaces the seed file for the application hosts started later.</summary>
+    public void ReplaceSeed(string seed)
+    {
+        File.WriteAllText(SeedPath, seed);
+    }
 
     /// <summary>Starts a new application host against the database of this instance.</summary>
     public WebApplicationFactory<Program> StartHost() =>

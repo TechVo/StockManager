@@ -153,12 +153,11 @@ h1, h2 {
 /* detail page */
 
 .detail-body {
-    max-width: 640px;
     padding: 20px 24px;
 }
 
 .detail-panel {
-    margin-top: 12px;
+    margin: 12px 0;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -169,46 +168,18 @@ h1, h2 {
     font-size: 16px;
 }
 
-.detail-form {
-    margin-top: 16px;
+.detail-panel p {
+    margin: 8px 0 0;
 }
 
-.detail-form > label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 600;
-}
-
-.detail-form input[type="text"] {
-    width: 100%;
-}
-
-.detail-code {
-    color: var(--muted);
-    font-size: 13px;
-}
-
-.detail-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    margin-top: 16px;
-}
-
-.detail-error {
-    color: var(--error);
-    font-size: 13px;
-}
-
-.code-search input, .detail-form input[type="text"] {
+.code-search input {
     padding: 4px 6px;
     border: 1px solid var(--border);
     border-radius: 4px;
     font: inherit;
 }
 
-.code-search button, .detail-actions button {
+.code-search button {
     padding: 4px 12px;
     border: 1px solid var(--accent);
     border-radius: 4px;
@@ -218,7 +189,7 @@ h1, h2 {
     cursor: pointer;
 }
 
-.code-search button:disabled, .detail-actions button:disabled {
+.code-search button:disabled {
     opacity: 0.5;
     cursor: default;
 }

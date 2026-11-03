@@ -1,13 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using StockManager.Contracts;
 
 namespace StockManager.Web.Services;
 
 /// <summary>
 /// Client of the REST API. All communication between the pages and the server goes through this class,
-/// which also converts failed changes to messages for the user.
+/// which also converts failed quantity updates to messages for the user.
 /// </summary>
 public sealed class StockApiClient
 {
@@ -69,9 +68,6 @@ public sealed class StockApiClient
         }
     }
 
-    /// <summary>Returns all categories with their codes for the detail page.</summary>
-    public Task<List<CategoryDto>> GetCategoryOptionsAsync() => GetAsync<List<CategoryDto>>("api/categories");
-
     /// <summary>Returns the detail of a record, or null if the code does not exist.</summary>
     public async Task<RecordDetailDto?> GetDetailAsync(RecordType type, string code)
     {
@@ -87,39 +83,6 @@ public sealed class StockApiClient
         return await response.Content.ReadFromJsonAsync<RecordDetailDto>();
     }
 
-    /// <summary>Saves the values of a record. Returns a message for the user if it failed, or null if it was saved.</summary>
-    public async Task<string?> UpdateRecordAsync(RecordType type, string code, string name, IEnumerable<string> categoryCodes)
-    {
-        try
-        {
-            // a category has only a name, the other types also have categories
-            var uri = GetRecordUri(type, code);
-            var response = type == RecordType.Category
-                ? await _http.PutAsJsonAsync(uri, new UpdateCategoryRequest { Name = name })
-                : await _http.PutAsJsonAsync(uri, new UpdateCategorizedRecordRequest { Name = name, CategoryCodes = categoryCodes.ToList() });
-
-            if (response.IsSuccessStatusCode)
-            {
-                return null;
-            }
-
-            // a record that does not exist has no message from the server
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                return "Záznam už neexistuje.";
-            }
-
-            // validation errors have no detail text, so they use a general message
-            var problem = await ReadProblemAsync(response);
-            return problem?.Detail ?? (response.StatusCode == HttpStatusCode.BadRequest ? "Zkontrolujte zadané hodnoty." : SaveFailedMessage);
-        }
-        catch (HttpRequestException)
-        {
-            // the server cannot be reached
-            return SaveFailedMessage;
-        }
-    }
-
     /// <summary>Returns the API address of a record of the given type.</summary>
     private static string GetRecordUri(RecordType type, string code)
     {
@@ -133,24 +96,8 @@ public sealed class StockApiClient
         return $"api/{collection}/{Uri.EscapeDataString(code)}";
     }
 
-    /// <summary>Reads the problem details of a failed response, or returns null if the body has another format.</summary>
-    private static async Task<ProblemResponse?> ReadProblemAsync(HttpResponseMessage response)
-    {
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<ProblemResponse>();
-        }
-        catch (Exception exception) when (exception is JsonException or NotSupportedException)
-        {
-            return null;
-        }
-    }
-
     /// <summary>Reads a JSON response, which must not be empty.</summary>
     private async Task<T> GetAsync<T>(string uri, CancellationToken cancellationToken = default) =>
         await _http.GetFromJsonAsync<T>(uri, cancellationToken)
             ?? throw new HttpRequestException($"Empty response from '{uri}'.");
-
-    /// <summary>The part of a problem details response that the client uses.</summary>
-    private sealed record ProblemResponse(string? Detail);
 }

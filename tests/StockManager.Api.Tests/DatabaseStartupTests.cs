@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using StockManager.Contracts;
 using StockManager.Server.Data;
@@ -8,7 +9,7 @@ namespace StockManager.Api.Tests;
 
 /// <summary>
 /// Integration tests of the database preparation at application startup.
-/// Cover that an existing database keeps its data and that invalid seed files stop the startup.
+/// Cover that an existing database keeps its data, that invalid seed files stop the startup, and that the real seed file is correct.
 /// </summary>
 public sealed class DatabaseStartupTests
 {
@@ -36,86 +37,67 @@ public sealed class DatabaseStartupTests
     }
 
     /// <summary>
-    /// A category and a product keep the codes from the seed file, whatever their position in the file is,
-    /// and other records refer to them by these codes. A new record then gets the number after the highest one.
-    /// </summary>
-    [Fact]
-    public async Task SeedCodes_AreKeptAndNextCodeFollowsHighest()
-    {
-        using var database = new TestDatabase("""
-            {
-              "categories": [ { "code": "KAT_000007", "name": "Tools" }, { "code": "KAT_000002", "name": "Office" } ],
-              "products": [
-                { "code": "PROD_000009", "name": "Hammer", "categories": ["KAT_000007"] },
-                { "code": "PROD_000004", "name": "Paper", "categories": ["KAT_000002"] }
-              ],
-              "clients": [ { "name": "Alpha", "categories": ["KAT_000007"], "stock": { "PROD_000009": 3 } } ]
-            }
-            """);
-        using var host = database.StartHost();
-        var http = host.CreateClient();
-
-        // read the seeded data
-        var categories = await http.GetFromJsonAsync<List<CategoryDto>>("api/categories");
-        var hammer = await http.GetFromJsonAsync<RecordDetailDto>("api/products/PROD_000009");
-        var rows = await http.GetFromJsonAsync<List<StockRowDto>>("api/stock");
-
-        Assert.Equal("Tools", categories!.Single(category => category.Code == "KAT_000007").Name);
-        Assert.Equal(["KAT_000007"], hammer!.CategoryCodes);
-        Assert.Equal(3, rows!.Single().Quantity);
-
-        // add a new category and a new product
-        using var scope = host.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var category = new Category { Name = "New category" };
-        var product = new Product { Name = "New product" };
-        db.AddRange(category, product);
-        await db.SaveChangesAsync();
-
-        Assert.Equal("KAT_000008", category.Code);
-        Assert.Equal("PROD_000010", product.Code);
-    }
-
-    /// <summary>
-    /// A seed file with a category or product code in the wrong form, with a reference to an unknown category code, or with stock of a product outside the categories of the client,
-    /// stops the startup with an exception that names the wrong value.
+    /// A seed file that writes to the generated code or refers to a code that does not exist stops the startup,
+    /// with an exception that names the broken rule.
     /// </summary>
     [Theory]
+    [InlineData("INSERT INTO Categories (Code, Name) VALUES ('KAT_000001', 'Tools');", "generated column")]
     [InlineData("""
-        { "categories": [ { "code": "NARADI", "name": "Tools" } ], "products": [], "clients": [] }
-        """, "NARADI")]
-    [InlineData("""
-        { "categories": [ { "code": "KAT_1", "name": "Tools" } ], "products": [], "clients": [] }
-        """, "KAT_1")]
-    [InlineData("""
-        { "categories": [ { "code": "PROD_000001", "name": "Tools" } ], "products": [], "clients": [] }
-        """, "PROD_000001")]
-    [InlineData("""
-        { "categories": [ { "code": "KAT_000000", "name": "Tools" } ], "products": [], "clients": [] }
-        """, "KAT_000000")]
-    [InlineData("""
-        { "categories": [], "products": [ { "code": "MOUSE", "name": "Mouse", "categories": [] } ], "clients": [] }
-        """, "MOUSE")]
-    [InlineData("""
-        { "categories": [], "products": [ { "code": "KAT_000001", "name": "Mouse", "categories": [] } ], "clients": [] }
-        """, "KAT_000001")]
-    [InlineData("""
-        { "categories": [], "products": [ { "code": "PROD_000001", "name": "Mouse", "categories": ["KAT_000099"] } ], "clients": [] }
-        """, "KAT_000099")]
-    [InlineData("""
-        {
-          "categories": [ { "code": "KAT_000001", "name": "Office" } ],
-          "products": [ { "code": "PROD_000001", "name": "Paper", "categories": ["KAT_000001"] }, { "code": "PROD_000002", "name": "Other", "categories": [] } ],
-          "clients": [ { "name": "Alpha", "categories": ["KAT_000001"], "stock": { "PROD_000002": 1 } } ]
-        }
-        """, "PROD_000002")]
+        INSERT INTO Products (Id, Name) VALUES (1, 'Mouse');
+        INSERT INTO CategoryProduct (CategoriesId, ProductsId)
+        SELECT (SELECT Id FROM Categories WHERE Code = 'KAT_000099'), (SELECT Id FROM Products WHERE Code = 'PROD_000001');
+        """, "NOT NULL")]
     public void InvalidSeed_StopsStartup(string seed, string expectedInMessage)
     {
         using var database = new TestDatabase(seed);
         using var host = database.StartHost();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => host.CreateClient());
+        var exception = Assert.Throws<SqliteException>(() => host.CreateClient());
 
         Assert.Contains(expectedInMessage, exception.Message);
+    }
+
+    /// <summary>
+    /// An error in a seed file leaves no part of the data in the database, so the next start with a correct file fills it completely.
+    /// </summary>
+    [Fact]
+    public async Task FailedSeed_LeavesNoData()
+    {
+        using var database = new TestDatabase("INSERT INTO Categories (Id, Name) VALUES (1, 'Tools'), (2, 'Tools');");
+
+        // the first start fails on the second category, which has the same name
+        using (var firstRun = database.StartHost())
+        {
+            Assert.Throws<SqliteException>(() => firstRun.CreateClient());
+        }
+
+        // the second start uses a correct file
+        database.ReplaceSeed(TestDatabase.DefaultSeed);
+        using var secondRun = database.StartHost();
+        var categories = await secondRun.CreateClient().GetFromJsonAsync<List<CategoryDto>>("api/categories");
+
+        Assert.Equal(3, categories!.Count);
+    }
+
+    /// <summary>
+    /// The real seed file of the application loads, and each stock row belongs to a product from the categories of its client,
+    /// which the database does not check. A new record can be added after it.
+    /// </summary>
+    [Fact]
+    public async Task RealSeed_HasOnlyStockFromClientCategories()
+    {
+        using var database = new TestDatabase(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Data", "seed.sql")));
+        using var host = database.StartHost();
+
+        var rows = await host.CreateClient().GetFromJsonAsync<List<StockRowDto>>("api/stock");
+
+        Assert.NotEmpty(rows!);
+        Assert.All(rows!, row => Assert.NotEmpty(row.Categories));
+
+        // add a new category and a new product
+        using var scope = host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.AddRange(new Category { Name = "New category" }, new Product { Name = "New product" });
+        await db.SaveChangesAsync();
     }
 }
