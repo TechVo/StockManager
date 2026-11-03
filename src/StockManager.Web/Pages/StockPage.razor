@@ -1,6 +1,7 @@
 @* The main page of the application. Holds the current filter, loads the data through the REST API
    and passes it to the filter menu and the grid. *@
 @page "/"
+@implements IDisposable
 @inject StockApiClient Api
 
 <header class="page-header">
@@ -9,13 +10,17 @@
 
 <div class="page-body">
     <aside class="filter-panel">
+        @if (_optionsError is not null)
+        {
+            <p class="message message-error" role="alert">@_optionsError</p>
+        }
         <FilterMenu Clients="_clients" Categories="_categories" Products="_products" Filter="_filter" FilterChanged="ApplyFilterAsync" />
     </aside>
 
     <main class="grid-panel">
-        @if (_error is not null)
+        @if (_rowsError is not null)
         {
-            <p class="message message-error" role="alert">@_error</p>
+            <p class="message message-error" role="alert">@_rowsError</p>
         }
         else if (_rows is null)
         {
@@ -36,7 +41,8 @@
     private List<LookupDto> _products = [];
     private StockFilter _filter = StockFilter.CreateEmpty();
     private IQueryable<StockRowDto>? _rows;
-    private string? _error;
+    private string? _optionsError;
+    private string? _rowsError;
     private CancellationTokenSource? _loadCancellation;
 
     /// <summary>Loads the filter options and the first grid rows.</summary>
@@ -61,7 +67,8 @@
         }
         catch (HttpRequestException)
         {
-            _error = LoadFailedMessage;
+            // kept apart from the error of the rows, so that loading the rows cannot remove this one
+            _optionsError = LoadFailedMessage;
         }
     }
 
@@ -84,7 +91,7 @@
         {
             var rows = await Api.GetStockAsync(_filter, _loadCancellation.Token);
             _rows = rows.AsQueryable();
-            _error = null;
+            _rowsError = null;
         }
         catch (OperationCanceledException)
         {
@@ -92,11 +99,18 @@
         }
         catch (HttpRequestException)
         {
-            _error = LoadFailedMessage;
+            _rowsError = LoadFailedMessage;
         }
     }
 
     /// <summary>Updates the saved quantity in the local rows, so that sorting by quantity stays correct.</summary>
     private void OnQuantitySaved((StockRowDto Row, int Quantity) saved) =>
         _rows = StockGrid.WithSavedQuantity(_rows!, saved);
+
+    /// <summary>Cancels the request that is still running when the user leaves the page.</summary>
+    public void Dispose()
+    {
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+    }
 }

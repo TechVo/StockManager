@@ -69,10 +69,10 @@ public sealed class StockApiClient
     }
 
     /// <summary>Returns the detail of a record, or null if the code does not exist.</summary>
-    public async Task<RecordDetailDto?> GetDetailAsync(RecordType type, string code)
+    public async Task<RecordDetailDto?> GetDetailAsync(RecordType type, string code, CancellationToken cancellationToken)
     {
         // a missing record is a valid result and not a failure
-        var response = await _http.GetAsync(GetRecordUri(type, code));
+        var response = await _http.GetAsync(GetRecordUri(type, code), cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             return null;
@@ -80,7 +80,7 @@ public sealed class StockApiClient
 
         response.EnsureSuccessStatusCode();
 
-        return await response.Content.ReadFromJsonAsync<RecordDetailDto>();
+        return await response.Content.ReadFromJsonAsync<RecordDetailDto>(cancellationToken);
     }
 
     /// <summary>Returns the API address of a record of the given type.</summary>

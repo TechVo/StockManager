@@ -1,6 +1,7 @@
 @* Detail of a client, a category or a product, shown read only. The prefix of the code tells the record type.
    The stock rows of the record are below it, and the quantity is the only value that can be changed. *@
 @page "/detail/{Code}"
+@implements IDisposable
 @inject StockApiClient Api
 
 <header class="page-header">
@@ -45,13 +46,20 @@
     private IQueryable<StockRowDto>? _rows;
     private bool _notFound;
     private string? _error;
+    private CancellationTokenSource? _loadCancellation;
 
     [Parameter]
     public required string Code { get; set; }
 
-    /// <summary>Loads the record for the code in the address and its stock rows.</summary>
+    /// <summary>Loads the record for the code in the address and its stock rows. A newer address cancels an older load that is still running.</summary>
     protected override async Task OnParametersSetAsync()
     {
+        // cancel the previous load, so that its late response cannot replace the data of this address
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = new CancellationTokenSource();
+        var cancellationToken = _loadCancellation.Token;
+
         // the data of a previous address is no longer valid
         _detail = null;
         _rows = null;
@@ -70,7 +78,7 @@
         try
         {
             // a record that does not exist has no stock rows to load
-            var detail = await Api.GetDetailAsync(type, Code);
+            var detail = await Api.GetDetailAsync(type, Code, cancellationToken);
             if (detail is null)
             {
                 _notFound = true;
@@ -78,9 +86,13 @@
             }
 
             // show only the stock rows of this record
-            var rows = await Api.GetStockAsync(CreateFilter(type, detail.Id), CancellationToken.None);
+            var rows = await Api.GetStockAsync(CreateFilter(type, detail.Id), cancellationToken);
             _rows = rows.AsQueryable();
             _detail = detail;
+        }
+        catch (OperationCanceledException)
+        {
+            // a newer address replaced this load and will show its own result
         }
         catch (HttpRequestException)
         {
@@ -99,4 +111,11 @@
     /// <summary>Updates the saved quantity in the local rows, so that sorting by quantity stays correct.</summary>
     private void OnQuantitySaved((StockRowDto Row, int Quantity) saved) =>
         _rows = StockGrid.WithSavedQuantity(_rows!, saved);
+
+    /// <summary>Cancels the load that is still running when the user leaves the page.</summary>
+    public void Dispose()
+    {
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+    }
 }
