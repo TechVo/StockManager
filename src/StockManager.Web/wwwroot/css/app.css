@@ -179,7 +179,7 @@ h1, h2 {
     font: inherit;
 }
 
-.code-search button {
+.code-search button, .quantity-editor button {
     padding: 4px 12px;
     border: 1px solid var(--accent);
     border-radius: 4px;
@@ -189,7 +189,7 @@ h1, h2 {
     cursor: pointer;
 }
 
-.code-search button:disabled {
+.code-search button:disabled, .quantity-editor button:disabled {
     opacity: 0.5;
     cursor: default;
 }
@@ -271,6 +271,12 @@ h1, h2 {
 
 .quantity-editor input.invalid {
     border-color: var(--error);
+}
+
+.quantity-change {
+    white-space: nowrap;
+    color: var(--muted);
+    font-size: 13px;
 }
 
 .quantity-error {

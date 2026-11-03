@@ -54,6 +54,7 @@ dotnet test
 - **Klient vidí produkt, pokud s ním sdílí aspoň jednu kategorii.** U řádku se ukazují jen tyto společné kategorie a jen podle nich funguje filtr kategorií.
 - **Klienti, kategorie a produkty mají neměnný kód.** Kód vrací i seznamy `/api/clients`, `/api/categories` a `/api/products`, takže přejmenování nic nerozbije. Kód (`KLI_000001`, `KAT_000001`, `PROD_000001`) generuje databáze z id, které se nikdy nepoužije znovu, takže ho nejde změnit ani zduplikovat. Testovací data v `seed.sql` určují id a odkazují se na záznamy kódem. Vazby v databázi a filtr gridu používají interní id.
 - **Detail a hledání podle kódu.** Každý klient, kategorie a produkt má stránku `/detail/{kód}`. Hledání ve filtru pozná typ záznamu podle předpony (`KLI_`, `KAT_`, `PROD_`) a detail otevře. Malá písmena a mezery okolo kódu nevadí. Detail otevře i kliknutí na klienta, kategorii nebo produkt v gridu a po najetí na odkaz se zobrazí kód s tlačítkem pro kopírování. Detail jen zobrazuje údaje a řádky skladu daného záznamu, měnit jde stejně jako v gridu jen počet kusů.
+- **Počet kusů se ukládá tlačítkem nebo Enterem.** Tlačítko se zobrazí až po změně spolu s rozdílem, například `3 → 5`, takže šipky číselného pole neposílají požadavek při každém kroku.
 - **Filtr:** hodnoty v jednom seznamu se kombinují přes OR, seznamy mezi sebou přes AND a prázdný seznam řádky neomezuje.
 - **Blazor WebAssembly místo Blazor Server,** protože stránka má data získávat přes REST API.
 - **Řazení probíhá v prohlížeči,** protože SQLite neřadí české znaky správně.

@@ -1,12 +1,19 @@
-@* Number input of one grid row. Saves the value when the input loses focus or on Enter,
-   and shows the result next to the input. *@
+@* Number input of one grid row. After a change it shows the old and the new value with a button that saves the new one,
+   and Enter does the same.
+   The input is read only during the save, so that a late response cannot replace a newer value. *@
 @inject StockApiClient Api
 
 <div class="quantity-editor">
     <input type="number" min="0" max="@UpdateStockRequest.MaxQuantity" step="1"
            class="@(_error is null ? null : "invalid")"
            aria-label="@($"Počet kusů: {Row.ProductName}, {Row.ClientName}")"
-           value="@Row.Quantity" @onchange="SaveAsync" />
+           readonly="@_saving"
+           value="@Row.Quantity" @oninput="OnInput" @onkeydown="OnKeyDownAsync" />
+    @if (_unsavedText is not null)
+    {
+        <span class="quantity-change">@Row.Quantity → @_unsavedText</span>
+        <button type="button" disabled="@_saving" @onclick="SaveAsync">Uložit</button>
+    }
     @if (_error is not null)
     {
         <span class="quantity-error" role="alert">@_error</span>
@@ -18,8 +25,10 @@
 </div>
 
 @code {
+    private string? _unsavedText;
     private string? _error;
     private bool _saved;
+    private bool _saving;
 
     [Parameter, EditorRequired]
     public required StockRowDto Row { get; set; }
@@ -27,25 +36,50 @@
     [Parameter]
     public EventCallback<int> QuantitySaved { get; set; }
 
-    /// <summary>Saves the value from the input and shows the result.</summary>
-    private async Task SaveAsync(ChangeEventArgs change)
+    /// <summary>Remembers the changed value. A return to the saved value leaves nothing to save.</summary>
+    private void OnInput(ChangeEventArgs change)
     {
-        // the previous result is no longer valid
+        var text = change.Value as string ?? "";
+
+        _unsavedText = text == Row.Quantity.ToString() ? null : text;
+        _error = null;
         _saved = false;
+    }
+
+    /// <summary>Saves the value when the user presses Enter.</summary>
+    private async Task OnKeyDownAsync(KeyboardEventArgs key)
+    {
+        if (key.Key == "Enter")
+        {
+            await SaveAsync();
+        }
+    }
+
+    /// <summary>Saves the changed value and shows the result.</summary>
+    private async Task SaveAsync()
+    {
+        // there is nothing to save, or the save is already running
+        if (_unsavedText is null || _saving)
+        {
+            return;
+        }
 
         // a value that is not a whole number cannot be sent, the range is checked by the server
-        if (!int.TryParse(change.Value as string, out var quantity))
+        if (!int.TryParse(_unsavedText, out var quantity))
         {
             _error = StockApiClient.InvalidQuantityMessage;
             return;
         }
 
         // save the value
+        _saving = true;
         _error = await Api.UpdateQuantityAsync(Row.ClientId, Row.ProductId, quantity);
+        _saving = false;
 
-        // tell the page only about a value that was saved
+        // tell the page only about a value that was saved, after an error the button stays for another attempt
         if (_error is null)
         {
+            _unsavedText = null;
             _saved = true;
             await QuantitySaved.InvokeAsync(quantity);
         }
