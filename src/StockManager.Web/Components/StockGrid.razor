@@ -1,4 +1,5 @@
-@* Grid of stock rows with sorting. The quantity column contains an editor for each row. *@
+@* Grid of stock rows with sorting. Clients, categories and products are links to their detail pages,
+   and the quantity column contains an editor for each row. *@
 
 @if (!Rows.Any())
 {
@@ -8,12 +9,14 @@ else
 {
     <QuickGrid Items="Rows" ItemKey="@(row => (row.ClientId, row.ProductId))" Class="stock-grid">
         <TemplateColumn Title="Klient" SortBy="ByClient" IsDefaultSortColumn="true">
-            @context.ClientName
+            <RecordLink Code="@context.ClientCode" Name="@context.ClientName" />
         </TemplateColumn>
-        <TemplateColumn Title="Kategorie">
-            @string.Join(", ", context.Categories.Order())
+        <TemplateColumn Title="Kategorie" SortBy="ByCategories">
+            <CategoryLinks Categories="context.Categories" />
         </TemplateColumn>
-        <PropertyColumn Title="Produkt" Property="row => row.ProductName" Sortable="true" />
+        <TemplateColumn Title="Produkt" SortBy="ByProduct">
+            <RecordLink Code="@context.ProductCode" Name="@context.ProductName" />
+        </TemplateColumn>
         <TemplateColumn Title="Počet kusů" SortBy="ByQuantity" Class="quantity-column">
             <QuantityEditor Row="context" QuantitySaved="quantity => QuantitySaved.InvokeAsync((context, quantity))" />
         </TemplateColumn>
@@ -24,8 +27,17 @@ else
     private static readonly GridSort<StockRowDto> ByClient =
         GridSort<StockRowDto>.ByAscending(row => row.ClientName).ThenAscending(row => row.ProductName);
 
+    private static readonly GridSort<StockRowDto> ByProduct =
+        GridSort<StockRowDto>.ByAscending(row => row.ProductName);
+
+    private static readonly GridSort<StockRowDto> ByCategories =
+        GridSort<StockRowDto>.ByAscending(row => FormatCategories(row)).ThenAscending(row => row.ClientName).ThenAscending(row => row.ProductName);
+
     private static readonly GridSort<StockRowDto> ByQuantity =
         GridSort<StockRowDto>.ByAscending(row => row.Quantity);
+
+    /// <summary>Returns the category names of a row as one sorted text, for sorting the column.</summary>
+    private static string FormatCategories(StockRowDto row) => string.Join(", ", row.Categories.Select(category => category.Name).Order());
 
     /// <summary>Returns the rows with a saved quantity, for pages that keep sorting by quantity correct.</summary>
     public static IQueryable<StockRowDto> WithSavedQuantity(IQueryable<StockRowDto> rows, (StockRowDto Row, int Quantity) saved) =>

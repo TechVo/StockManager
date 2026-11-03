@@ -6,8 +6,10 @@ namespace StockManager.Contracts;
 /// </summary>
 public sealed record StockRowDto(
     int ClientId,
+    string ClientCode,
     string ClientName,
     int ProductId,
+    string ProductCode,
     string ProductName,
-    IReadOnlyList<string> Categories,
+    IReadOnlyList<CategoryDto> Categories,
     int Quantity);

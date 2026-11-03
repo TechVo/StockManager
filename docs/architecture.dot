@@ -21,6 +21,8 @@ digraph Architecture {
         CodeSearch;
         MultiSelect;
         StockGrid;
+        CategoryLinks;
+        RecordLink [label="RecordLink\n(tooltip, copies the code)"];
         QuantityEditor;
         StockApiClient;
     }
@@ -56,6 +58,11 @@ digraph Architecture {
     FilterMenu -> MultiSelect;
     FilterMenu -> CodeSearch;
     CodeSearch -> RecordDetailPage [label="opens by code", style=dashed];
+    StockGrid -> CategoryLinks;
+    RecordDetailPage -> CategoryLinks;
+    StockGrid -> RecordLink;
+    CategoryLinks -> RecordLink;
+    RecordLink -> RecordDetailPage [label="opens", style=dashed, constraint=false];
     StockPage -> StockGrid;
     StockGrid -> QuantityEditor;
 

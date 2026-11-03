@@ -29,7 +29,7 @@
             <p>Název: @_detail.Name</p>
             @if (_type != RecordType.Category)
             {
-                <p>Kategorie: @string.Join(", ", _detail.Categories.Order())</p>
+                <p>Kategorie: <CategoryLinks Categories="_detail.Categories" /></p>
             }
         </section>
 

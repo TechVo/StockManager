@@ -1,0 +1,40 @@
+@* Link to the detail page of a record. Hovering over it or focusing it shows a tooltip with the code and a button that copies the code. *@
+@inject IJSRuntime JS
+
+<span class="record-link" @onmouseleave="ClearResult">
+    <a href="@($"detail/{Code}")">@Name</a>
+    <span class="record-tooltip">
+        <code>@Code</code>
+        <button type="button" class="link-button" @onclick="CopyAsync">@_result</button>
+    </span>
+</span>
+
+@code {
+    private const string CopyText = "Kopírovat";
+
+    private string _result = CopyText;
+
+    [Parameter, EditorRequired]
+    public required string Code { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string Name { get; set; }
+
+    /// <summary>Copies the code to the clipboard and shows the result on the button.</summary>
+    private async Task CopyAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", Code);
+            _result = "Zkopírováno";
+        }
+        catch (JSException)
+        {
+            // the browser allows the clipboard only on HTTPS or localhost, or the user denied the access
+            _result = "Nelze kopírovat";
+        }
+    }
+
+    /// <summary>Returns the button to its first text when the mouse leaves the link.</summary>
+    private void ClearResult() => _result = CopyText;
+}

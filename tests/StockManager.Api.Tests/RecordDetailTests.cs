@@ -47,7 +47,7 @@ public sealed class RecordDetailTests : IDisposable
         Assert.Equal(id, detail!.Id);
         Assert.Equal(code, detail.Code);
         Assert.Equal(name, detail.Name);
-        Assert.Equal(categories, detail.Categories.Order());
+        Assert.Equal(categories, detail.Categories.Select(category => category.Name).Order());
     }
 
     /// <summary>

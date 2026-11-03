@@ -1,0 +1,11 @@
+@* Categories sorted by name, separated by commas. Each one is a link to its detail page with a tooltip. *@
+
+@foreach (var (category, index) in Categories.OrderBy(category => category.Name).Select((category, index) => (category, index)))
+{
+    @(index > 0 ? ", " : "")<RecordLink Code="@category.Code" Name="@category.Name" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required IReadOnlyList<CategoryDto> Categories { get; set; }
+}

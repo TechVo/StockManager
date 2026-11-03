@@ -34,21 +34,21 @@ public sealed class StockService
     public Task<RecordDetailDto?> GetClientDetailAsync(string code, CancellationToken cancellationToken) =>
         _db.Clients
             .Where(client => client.Code == code)
-            .Select(client => new RecordDetailDto(client.Id, client.Code, client.Name, client.Categories.Select(category => category.Name).ToList()))
+            .Select(client => new RecordDetailDto(client.Id, client.Code, client.Name, client.Categories.Select(category => new CategoryDto(category.Id, category.Code, category.Name)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>Returns the detail of a category, or null if the code does not exist.</summary>
     public Task<RecordDetailDto?> GetCategoryDetailAsync(string code, CancellationToken cancellationToken) =>
         _db.Categories
             .Where(category => category.Code == code)
-            .Select(category => new RecordDetailDto(category.Id, category.Code, category.Name, new List<string>()))
+            .Select(category => new RecordDetailDto(category.Id, category.Code, category.Name, new List<CategoryDto>()))
             .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>Returns the detail of a product, or null if the code does not exist.</summary>
     public Task<RecordDetailDto?> GetProductDetailAsync(string code, CancellationToken cancellationToken) =>
         _db.Products
             .Where(product => product.Code == code)
-            .Select(product => new RecordDetailDto(product.Id, product.Code, product.Name, product.Categories.Select(category => category.Name).ToList()))
+            .Select(product => new RecordDetailDto(product.Id, product.Code, product.Name, product.Categories.Select(category => new CategoryDto(category.Id, category.Code, category.Name)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>Returns the grid rows that match the filter.</summary>
@@ -88,10 +88,12 @@ public sealed class StockService
         return rows
             .Select(item => new StockRowDto(
                 item.ClientId,
+                item.Client.Code,
                 item.Client.Name,
                 item.ProductId,
+                item.Product.Code,
                 item.Product.Name,
-                item.Product.Categories.Intersect(item.Client.Categories).Select(category => category.Name).ToList(),
+                item.Product.Categories.Intersect(item.Client.Categories).Select(category => new CategoryDto(category.Id, category.Code, category.Name)).ToList(),
                 item.Quantity))
             .ToList();
     }

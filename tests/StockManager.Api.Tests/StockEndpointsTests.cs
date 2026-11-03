@@ -89,7 +89,7 @@ public sealed class StockEndpointsTests : IDisposable
         var rows = await GetStockAsync("");
 
         Assert.Equal("Gadgets", categories!.Single(category => category.Code == "KAT_000001").Name);
-        Assert.Equal(["Gadgets"], rows.Single(row => row is { ClientName: "Alpha", ProductName: "Mouse" }).Categories);
+        Assert.Equal(["Gadgets"], rows.Single(row => row is { ClientName: "Alpha", ProductName: "Mouse" }).Categories.Select(category => category.Name));
     }
 
     /// <summary>
@@ -205,6 +205,20 @@ public sealed class StockEndpointsTests : IDisposable
     }
 
     /// <summary>
+    /// A row contains the codes of its client, product and categories, which the grid needs for links to the detail pages.
+    /// </summary>
+    [Fact]
+    public async Task Row_ContainsCodesForLinks()
+    {
+        var rows = await GetStockAsync("");
+        var row = rows.Single(row => row is { ClientName: "Alpha", ProductName: "Mouse" });
+
+        Assert.Equal("KLI_000001", row.ClientCode);
+        Assert.Equal("PROD_000001", row.ProductCode);
+        Assert.Equal(["KAT_000001"], row.Categories.Select(category => category.Code));
+    }
+
+    /// <summary>
     /// A row shows only the categories of the product that the client works with.
     /// Alpha does not work with Office, so its Mouse row has only Electronics.
     /// </summary>
@@ -213,8 +227,8 @@ public sealed class StockEndpointsTests : IDisposable
     {
         var rows = await GetStockAsync("");
 
-        Assert.Equal(["Electronics"], rows.Single(row => row is { ClientName: "Alpha", ProductName: "Mouse" }).Categories);
-        Assert.Equal(["Electronics", "Office"], rows.Single(row => row is { ClientName: "Beta", ProductName: "Mouse" }).Categories.Order());
+        Assert.Equal(["Electronics"], rows.Single(row => row is { ClientName: "Alpha", ProductName: "Mouse" }).Categories.Select(category => category.Name));
+        Assert.Equal(["Electronics", "Office"], rows.Single(row => row is { ClientName: "Beta", ProductName: "Mouse" }).Categories.Select(category => category.Name).Order());
     }
 
     /// <summary>
@@ -262,7 +276,7 @@ public sealed class StockEndpointsTests : IDisposable
         var rows = await GetStockAsync($"categoryIds={office}");
 
         Assert.Equal(["Beta/Mouse", "Beta/Paper"], rows.Select(row => $"{row.ClientName}/{row.ProductName}").Order());
-        Assert.Equal(["Electronics", "Office"], rows.Single(row => row.ProductName == "Mouse").Categories.Order());
+        Assert.Equal(["Electronics", "Office"], rows.Single(row => row.ProductName == "Mouse").Categories.Select(category => category.Name).Order());
     }
 
     /// <summary>
