@@ -288,9 +288,17 @@ h1, h2 {
     font-size: 13px;
 }
 
+/* stay visible for two seconds and then fade out, a new save creates the element again and restarts this */
 .quantity-saved {
     color: var(--success);
     font-size: 13px;
+    animation: fade-out 1s ease-in 2s forwards;
+}
+
+@keyframes fade-out {
+    to {
+        opacity: 0;
+    }
 }
 
 /* unexpected error bar, shown by the Blazor runtime */
