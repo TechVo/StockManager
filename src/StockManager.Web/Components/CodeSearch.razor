@@ -1,0 +1,44 @@
+@* Search field in the filter menu. The prefix of the entered code tells the record type,
+   and a known code opens the detail page of the record. *@
+@inject NavigationManager Navigation
+
+<form class="code-search" @onsubmit="Open">
+    <label for="code-search-input">Hledat podle kódu</label>
+    <div class="code-search-row">
+        <input id="code-search-input" type="search" placeholder="KAT_000001" autocomplete="off"
+               @bind="_text" @bind:event="oninput" @bind:after="ClearError" />
+        <button type="submit" disabled="@string.IsNullOrWhiteSpace(_text)">Otevřít</button>
+    </div>
+    @if (_error is not null)
+    {
+        <span class="code-search-error" role="alert">@_error</span>
+    }
+    else if (RecordType is { } type)
+    {
+        <span class="code-search-type">@RecordTypeText.GetName(type)</span>
+    }
+</form>
+
+@code {
+    private string _text = "";
+    private string? _error;
+
+    /// <summary>The record type recognized from the entered text, or null if no type has this prefix.</summary>
+    private RecordType? RecordType => RecordCode.GetRecordType(RecordCode.Normalize(_text));
+
+    /// <summary>Removes the error of the previous search when the text changes.</summary>
+    private void ClearError() => _error = null;
+
+    /// <summary>Opens the detail page of the entered code, or shows an error if no type has this prefix.</summary>
+    private void Open()
+    {
+        // a code with an unknown prefix cannot belong to any record
+        if (RecordType is null)
+        {
+            _error = $"Kód musí začínat {RecordCode.ClientPrefix}, {RecordCode.CategoryPrefix} nebo {RecordCode.ProductPrefix}.";
+            return;
+        }
+
+        Navigation.NavigateTo($"detail/{Uri.EscapeDataString(RecordCode.Normalize(_text))}");
+    }
+}

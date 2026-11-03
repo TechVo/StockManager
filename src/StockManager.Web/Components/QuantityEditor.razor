@@ -1,0 +1,53 @@
+@* Number input of one grid row. Saves the value when the input loses focus or on Enter,
+   and shows the result next to the input. *@
+@inject StockApiClient Api
+
+<div class="quantity-editor">
+    <input type="number" min="0" max="@UpdateStockRequest.MaxQuantity" step="1"
+           class="@(_error is null ? null : "invalid")"
+           aria-label="@($"Počet kusů: {Row.ProductName}, {Row.ClientName}")"
+           value="@Row.Quantity" @onchange="SaveAsync" />
+    @if (_error is not null)
+    {
+        <span class="quantity-error" role="alert">@_error</span>
+    }
+    else if (_saved)
+    {
+        <span class="quantity-saved">Uloženo</span>
+    }
+</div>
+
+@code {
+    private string? _error;
+    private bool _saved;
+
+    [Parameter, EditorRequired]
+    public required StockRowDto Row { get; set; }
+
+    [Parameter]
+    public EventCallback<int> QuantitySaved { get; set; }
+
+    /// <summary>Saves the value from the input and shows the result.</summary>
+    private async Task SaveAsync(ChangeEventArgs change)
+    {
+        // the previous result is no longer valid
+        _saved = false;
+
+        // a value that is not a whole number cannot be sent, the range is checked by the server
+        if (!int.TryParse(change.Value as string, out var quantity))
+        {
+            _error = StockApiClient.InvalidQuantityMessage;
+            return;
+        }
+
+        // save the value
+        _error = await Api.UpdateQuantityAsync(Row.ClientId, Row.ProductId, quantity);
+
+        // tell the page only about a value that was saved
+        if (_error is null)
+        {
+            _saved = true;
+            await QuantitySaved.InvokeAsync(quantity);
+        }
+    }
+}

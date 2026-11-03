@@ -1,0 +1,36 @@
+@* Titled list of checkboxes sorted by name. Reports the new selection and keeps no state of its own. *@
+
+<fieldset class="multi-select">
+    <legend>@Title</legend>
+    <div class="multi-select-items">
+        @foreach (var item in Items.OrderBy(item => item.Name))
+        {
+            <label>
+                <input type="checkbox" checked="@Selected.Contains(item.Id)" @onchange="() => ToggleAsync(item.Id)" />
+                @item.Name
+            </label>
+        }
+    </div>
+</fieldset>
+
+@code {
+    [Parameter, EditorRequired]
+    public required string Title { get; set; }
+
+    [Parameter, EditorRequired]
+    public required IReadOnlyList<LookupDto> Items { get; set; }
+
+    [Parameter, EditorRequired]
+    public required int[] Selected { get; set; }
+
+    [Parameter]
+    public EventCallback<int[]> SelectedChanged { get; set; }
+
+    /// <summary>Adds the value to the selection or removes it, and reports the result.</summary>
+    private Task ToggleAsync(int id)
+    {
+        var selected = Selected.Contains(id) ? Selected.Where(value => value != id) : Selected.Append(id);
+
+        return SelectedChanged.InvokeAsync(selected.ToArray());
+    }
+}

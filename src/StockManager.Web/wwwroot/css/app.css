@@ -1,0 +1,298 @@
+:root {
+    --text: #1f2933;
+    --muted: #616e7c;
+    --border: #d9e2ec;
+    --surface: #ffffff;
+    --background: #f5f7fa;
+    --accent: #1f5fbf;
+    --error: #b42318;
+    --success: #18794e;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--background);
+}
+
+h1, h2 {
+    margin: 0;
+}
+
+.page-header {
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.page-header h1 {
+    font-size: 20px;
+}
+
+.page-body {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+    padding: 20px 24px;
+}
+
+.filter-panel, .grid-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.grid-panel {
+    overflow-x: auto;
+}
+
+.message {
+    margin: 0;
+    color: var(--muted);
+}
+
+.message-error {
+    color: var(--error);
+}
+
+/* filter menu */
+
+.filter-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filter-menu-header h2 {
+    font-size: 16px;
+}
+
+.link-button {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.link-button:disabled {
+    color: var(--muted);
+    cursor: default;
+}
+
+.multi-select {
+    margin: 16px 0 0;
+    padding: 0;
+    border: none;
+}
+
+.multi-select legend {
+    padding: 0;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.multi-select-items {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.multi-select label {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 3px 0;
+    cursor: pointer;
+}
+
+/* search by code */
+
+.code-search {
+    margin-top: 16px;
+}
+
+.code-search > label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.code-search-row {
+    display: flex;
+    gap: 8px;
+}
+
+.code-search-row input {
+    min-width: 0;
+    flex: 1;
+}
+
+.code-search-type {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.code-search-error {
+    display: block;
+    margin-top: 4px;
+    color: var(--error);
+    font-size: 13px;
+}
+
+/* detail page */
+
+.detail-body {
+    max-width: 640px;
+    padding: 20px 24px;
+}
+
+.detail-panel {
+    margin-top: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.detail-panel h2 {
+    font-size: 16px;
+}
+
+.detail-form {
+    margin-top: 16px;
+}
+
+.detail-form > label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.detail-form input[type="text"] {
+    width: 100%;
+}
+
+.detail-code {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.detail-error {
+    color: var(--error);
+    font-size: 13px;
+}
+
+.code-search input, .detail-form input[type="text"] {
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font: inherit;
+}
+
+.code-search button, .detail-actions button {
+    padding: 4px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    font: inherit;
+    color: #ffffff;
+    background: var(--accent);
+    cursor: pointer;
+}
+
+.code-search button:disabled, .detail-actions button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* grid */
+
+.stock-grid {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stock-grid th, .stock-grid td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+/* the sortable column titles are buttons, so all titles take the same font */
+.stock-grid th, .stock-grid th button {
+    font: inherit;
+    font-weight: 600;
+}
+
+.quantity-column {
+    width: 340px;
+}
+
+.quantity-editor {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.quantity-editor input {
+    width: 100px;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font: inherit;
+    text-align: right;
+}
+
+.quantity-editor input.invalid {
+    border-color: var(--error);
+}
+
+.quantity-error {
+    color: var(--error);
+    font-size: 13px;
+}
+
+.quantity-saved {
+    color: var(--success);
+    font-size: 13px;
+}
+
+/* unexpected error bar, shown by the Blazor runtime */
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    inset: auto 0 0 0;
+    padding: 10px 24px;
+    color: #ffffff;
+    background: var(--error);
+}
+
+#blazor-error-ui a {
+    color: inherit;
+}
+
+@media (max-width: 800px) {
+    .page-body {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 16px;
+    }
+}

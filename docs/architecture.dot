@@ -1,0 +1,102 @@
+// Source of the architecture diagram. The build renders it to architecture.svg and architecture.png.
+digraph Architecture {
+    // general layout and style
+    rankdir=TB;
+    compound=true;
+    newrank=true;
+    fontname="Helvetica";
+    node [shape=box, style="rounded,filled", fillcolor=white, fontname="Helvetica", fontsize=11];
+    edge [fontname="Helvetica", fontsize=9, color="#555555"];
+
+    // Blazor WebAssembly client, runs in the browser
+    subgraph cluster_web {
+        label="StockManager.Web (Blazor WebAssembly)";
+        style="rounded,filled";
+        fillcolor="#e8f1fb";
+
+        App [label="App\n(router)"];
+        StockPage;
+        RecordDetailPage;
+        FilterMenu;
+        CodeSearch;
+        MultiSelect;
+        StockGrid;
+        QuantityEditor;
+        StockApiClient;
+    }
+
+    // DTOs shared by the client and the server
+    Contracts [label="StockManager.Contracts\nStockFilter, StockRowDto, LookupDto,\nClientDto, CategoryDto, ProductDto,\nRecordDetailDto, RecordCode,\nUpdateStockRequest, UpdateCategoryRequest,\nUpdateCategorizedRecordRequest", fillcolor="#fdf3d8"];
+
+    // REST API, application logic and data access
+    subgraph cluster_server {
+        label="StockManager.Server (ASP.NET Core)";
+        style="rounded,filled";
+        fillcolor="#e9f6ea";
+
+        Program [label="Program\n(DI, startup, hosts the client)"];
+        StockEndpoints [label="StockEndpoints\n(REST API /api)"];
+        RecordEndpoints [label="RecordEndpoints\n(REST API /api, by code)"];
+        StockService;
+        RecordService;
+        DatabaseInitializer;
+        DbSeeder;
+        AppDbContext [label="AppDbContext\n(EF Core)"];
+        Models [label="Models\nClient, Category,\nProduct, StockItem"];
+    }
+
+    // files used at runtime
+    Database [label="stock.db\n(SQLite)", shape=cylinder, fillcolor="#eeeeee"];
+    SeedData [label="seed-data.json", shape=note, fillcolor="#eeeeee"];
+
+    // integration tests run the real server with their own database file
+    Tests [label="StockManager.Api.Tests\n(integration tests)", fillcolor="#f3e8fb"];
+
+    // component structure of the pages
+    App -> StockPage;
+    App -> RecordDetailPage;
+    StockPage -> FilterMenu;
+    FilterMenu -> MultiSelect;
+    FilterMenu -> CodeSearch;
+    CodeSearch -> RecordDetailPage [label="opens by code", style=dashed];
+    StockPage -> StockGrid;
+    StockGrid -> QuantityEditor;
+
+    // client components call the API only through the API client
+    StockPage -> StockApiClient;
+    QuantityEditor -> StockApiClient;
+    RecordDetailPage -> StockApiClient;
+
+    // communication between the client and the server
+    StockApiClient -> StockEndpoints [label="HTTP / JSON", style=bold];
+    StockApiClient -> RecordEndpoints [label="HTTP / JSON", style=bold];
+    Program -> App [label="serves static files", style=dashed, constraint=false];
+
+    // request handling on the server
+    Program -> StockEndpoints;
+    Program -> RecordEndpoints;
+    StockEndpoints -> StockService;
+    RecordEndpoints -> RecordService;
+    StockService -> AppDbContext;
+    RecordService -> AppDbContext;
+
+    // database preparation at startup
+    Program -> DatabaseInitializer;
+    DatabaseInitializer -> DbSeeder;
+    DatabaseInitializer -> AppDbContext;
+    DbSeeder -> AppDbContext;
+    DbSeeder -> SeedData [label="reads"];
+
+    // data access
+    AppDbContext -> Models;
+    AppDbContext -> Database;
+
+    // both sides share the same DTOs
+    StockApiClient -> Contracts [style=dashed];
+    StockEndpoints -> Contracts [style=dashed];
+    RecordEndpoints -> Contracts [style=dashed];
+
+    // integration tests call the REST API
+    Tests -> StockEndpoints [label="HTTP"];
+    Tests -> RecordEndpoints [label="HTTP"];
+}

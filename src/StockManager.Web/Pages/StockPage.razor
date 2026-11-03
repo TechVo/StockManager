@@ -1,0 +1,110 @@
+@* The main page of the application. Holds the current filter, loads the data through the REST API
+   and passes it to the filter menu and the grid. *@
+@page "/"
+@inject StockApiClient Api
+
+<header class="page-header">
+    <h1>Správa skladu</h1>
+</header>
+
+<div class="page-body">
+    <aside class="filter-panel">
+        <FilterMenu Clients="_clients" Categories="_categories" Products="_products" Filter="_filter" FilterChanged="ApplyFilterAsync" />
+    </aside>
+
+    <main class="grid-panel">
+        @if (_error is not null)
+        {
+            <p class="message message-error" role="alert">@_error</p>
+        }
+        else if (_rows is null)
+        {
+            <p class="message">Načítám…</p>
+        }
+        else
+        {
+            <StockGrid Rows="_rows" QuantitySaved="OnQuantitySaved" />
+        }
+    </main>
+</div>
+
+@code {
+    private const string LoadFailedMessage = "Data se nepodařilo načíst. Zkuste obnovit stránku.";
+
+    private List<LookupDto> _clients = [];
+    private List<LookupDto> _categories = [];
+    private List<LookupDto> _products = [];
+    private StockFilter _filter = StockFilter.CreateEmpty();
+    private IQueryable<StockRowDto>? _rows;
+    private string? _error;
+    private CancellationTokenSource? _loadCancellation;
+
+    /// <summary>Loads the filter options and the first grid rows.</summary>
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadFilterOptionsAsync(), LoadRowsAsync());
+    }
+
+    /// <summary>Loads the options for the filter menu.</summary>
+    private async Task LoadFilterOptionsAsync()
+    {
+        try
+        {
+            // start all requests before waiting for any of them
+            var clients = Api.GetClientsAsync();
+            var categories = Api.GetCategoriesAsync();
+            var products = Api.GetProductsAsync();
+
+            _clients = await clients;
+            _categories = await categories;
+            _products = await products;
+        }
+        catch (HttpRequestException)
+        {
+            _error = LoadFailedMessage;
+        }
+    }
+
+    /// <summary>Stores the new filter and loads the rows that match it.</summary>
+    private async Task ApplyFilterAsync(StockFilter filter)
+    {
+        _filter = filter;
+        await LoadRowsAsync();
+    }
+
+    /// <summary>Loads the rows for the current filter. A newer call cancels an older one that is still running.</summary>
+    private async Task LoadRowsAsync()
+    {
+        // cancel the previous request, so that its late response cannot replace newer rows
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = new CancellationTokenSource();
+
+        try
+        {
+            var rows = await Api.GetStockAsync(_filter, _loadCancellation.Token);
+            _rows = rows.AsQueryable();
+            _error = null;
+        }
+        catch (OperationCanceledException)
+        {
+            // a newer call replaced this request and will show its own result
+        }
+        catch (HttpRequestException)
+        {
+            _error = LoadFailedMessage;
+        }
+    }
+
+    /// <summary>Updates the saved quantity in the local rows, so that sorting by quantity stays correct.</summary>
+    private void OnQuantitySaved((StockRowDto Row, int Quantity) saved)
+    {
+        _rows = _rows!
+            .AsEnumerable()
+            .Select(row => row.ClientId == saved.Row.ClientId && row.ProductId == saved.Row.ProductId
+                ? row with { Quantity = saved.Quantity }
+                : row)
+            .ToList()
+            .AsQueryable();
+    }
+}

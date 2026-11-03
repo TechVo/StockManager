@@ -1,0 +1,10 @@
+@* Root of the client: selects the page for the current address. *@
+
+<Router AppAssembly="typeof(App).Assembly">
+    <Found Context="route">
+        <RouteView RouteData="route" />
+    </Found>
+    <NotFound>
+        <p class="message">Stránka neexistuje. <a href="">Zpět na přehled</a></p>
+    </NotFound>
+</Router>

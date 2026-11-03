@@ -1,0 +1,35 @@
+@* Grid of stock rows with sorting. The quantity column contains an editor for each row. *@
+
+@if (!Rows.Any())
+{
+    <p class="message">Filtru neodpovídá žádná položka.</p>
+}
+else
+{
+    <QuickGrid Items="Rows" ItemKey="@(row => (row.ClientId, row.ProductId))" Class="stock-grid">
+        <TemplateColumn Title="Klient" SortBy="ByClient" IsDefaultSortColumn="true">
+            @context.ClientName
+        </TemplateColumn>
+        <TemplateColumn Title="Kategorie">
+            @string.Join(", ", context.Categories.Order())
+        </TemplateColumn>
+        <PropertyColumn Title="Produkt" Property="row => row.ProductName" Sortable="true" />
+        <TemplateColumn Title="Počet kusů" SortBy="ByQuantity" Class="quantity-column">
+            <QuantityEditor Row="context" QuantitySaved="quantity => QuantitySaved.InvokeAsync((context, quantity))" />
+        </TemplateColumn>
+    </QuickGrid>
+}
+
+@code {
+    private static readonly GridSort<StockRowDto> ByClient =
+        GridSort<StockRowDto>.ByAscending(row => row.ClientName).ThenAscending(row => row.ProductName);
+
+    private static readonly GridSort<StockRowDto> ByQuantity =
+        GridSort<StockRowDto>.ByAscending(row => row.Quantity);
+
+    [Parameter, EditorRequired]
+    public required IQueryable<StockRowDto> Rows { get; set; }
+
+    [Parameter]
+    public EventCallback<(StockRowDto Row, int Quantity)> QuantitySaved { get; set; }
+}

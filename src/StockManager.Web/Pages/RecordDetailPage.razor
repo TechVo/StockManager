@@ -1,0 +1,140 @@
+@* Detail of a client, a category or a product. The prefix of the code tells the record type.
+   All values except the id and the code can be changed, and clients and products can also have categories added and removed. *@
+@page "/detail/{Code}"
+@inject StockApiClient Api
+
+<header class="page-header">
+    <h1>Správa skladu</h1>
+</header>
+
+<div class="detail-body">
+    <a href="">← Zpět na přehled</a>
+
+    <main class="detail-panel">
+        @if (_loadError is not null)
+        {
+            <p class="message message-error" role="alert">@_loadError</p>
+        }
+        else if (_notFound)
+        {
+            <p class="message" role="alert">Záznam s kódem @Code neexistuje.</p>
+        }
+        else if (_detail is null)
+        {
+            <p class="message">Načítám…</p>
+        }
+        else
+        {
+            <h2>@RecordTypeText.GetName(_type) @_detail.Code</h2>
+
+            <form class="detail-form" @onsubmit="SaveAsync">
+                <label for="detail-name">Název</label>
+                <input id="detail-name" type="text" required maxlength="@UpdateCategoryRequest.MaxNameLength"
+                       @bind="_name" @bind:event="oninput" />
+
+                @if (_type != RecordType.Category)
+                {
+                    <fieldset class="multi-select">
+                        <legend>Kategorie</legend>
+                        @foreach (var category in _categories.OrderBy(category => category.Name))
+                        {
+                            <label>
+                                <input type="checkbox" checked="@_categoryCodes.Contains(category.Code)" @onchange="() => ToggleCategory(category.Code)" />
+                                @category.Name
+                                <span class="detail-code">@category.Code</span>
+                            </label>
+                        }
+                    </fieldset>
+                }
+
+                <div class="detail-actions">
+                    <button type="submit" disabled="@_saving">Uložit</button>
+                    @if (_saveError is not null)
+                    {
+                        <span class="detail-error" role="alert">@_saveError</span>
+                    }
+                    else if (_saved)
+                    {
+                        <span class="quantity-saved">Uloženo</span>
+                    }
+                </div>
+            </form>
+        }
+    </main>
+</div>
+
+@code {
+    private RecordType _type;
+    private RecordDetailDto? _detail;
+    private List<CategoryDto> _categories = [];
+    private HashSet<string> _categoryCodes = [];
+    private string _name = "";
+    private bool _notFound;
+    private string? _loadError;
+    private string? _saveError;
+    private bool _saved;
+    private bool _saving;
+
+    [Parameter]
+    public required string Code { get; set; }
+
+    /// <summary>Loads the record for the code in the address.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        // the data of a previous address is no longer valid
+        _detail = null;
+        _notFound = false;
+        _loadError = null;
+        _saveError = null;
+        _saved = false;
+
+        // a code with an unknown prefix cannot belong to any record
+        if (RecordCode.GetRecordType(Code) is not { } type)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _type = type;
+
+        try
+        {
+            // only clients and products have categories to select
+            _categories = type == RecordType.Category ? [] : await Api.GetCategoryOptionsAsync();
+
+            // a detail that does not exist has no form to show
+            _detail = await Api.GetDetailAsync(type, Code);
+            _notFound = _detail is null;
+            _name = _detail?.Name ?? "";
+            _categoryCodes = _detail?.CategoryCodes.ToHashSet() ?? [];
+        }
+        catch (HttpRequestException)
+        {
+            _loadError = "Data se nepodařilo načíst. Zkuste obnovit stránku.";
+        }
+    }
+
+    /// <summary>Adds the category to the selection or removes it. The change is saved with the form.</summary>
+    private void ToggleCategory(string code)
+    {
+        _saved = false;
+
+        if (!_categoryCodes.Remove(code))
+        {
+            _categoryCodes.Add(code);
+        }
+    }
+
+    /// <summary>Saves the form and shows the result.</summary>
+    private async Task SaveAsync()
+    {
+        // only one save can run at a time, and the previous result is no longer valid
+        _saving = true;
+        _saved = false;
+
+        _saveError = await Api.UpdateRecordAsync(_type, Code, _name, _categoryCodes);
+
+        _saved = _saveError is null;
+        _saving = false;
+    }
+}

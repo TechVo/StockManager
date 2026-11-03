@@ -1,0 +1,35 @@
+@* Menu with the grid filter: one multi-select list each for clients, categories and products.
+   Also contains the search that opens the detail of a record by its code. *@
+
+<div class="filter-menu">
+    <div class="filter-menu-header">
+        <h2>Filtr</h2>
+        <button type="button" class="link-button" disabled="@(!Filter.HasSelection())" @onclick="() => FilterChanged.InvokeAsync(StockFilter.CreateEmpty())">Zrušit</button>
+    </div>
+
+    <CodeSearch />
+
+    <MultiSelect Title="Klienti" Items="Clients" Selected="Filter.ClientIds"
+                 SelectedChanged="ids => FilterChanged.InvokeAsync(Filter with { ClientIds = ids })" />
+    <MultiSelect Title="Kategorie" Items="Categories" Selected="Filter.CategoryIds"
+                 SelectedChanged="ids => FilterChanged.InvokeAsync(Filter with { CategoryIds = ids })" />
+    <MultiSelect Title="Produkty" Items="Products" Selected="Filter.ProductIds"
+                 SelectedChanged="ids => FilterChanged.InvokeAsync(Filter with { ProductIds = ids })" />
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required IReadOnlyList<LookupDto> Clients { get; set; }
+
+    [Parameter, EditorRequired]
+    public required IReadOnlyList<LookupDto> Categories { get; set; }
+
+    [Parameter, EditorRequired]
+    public required IReadOnlyList<LookupDto> Products { get; set; }
+
+    [Parameter, EditorRequired]
+    public required StockFilter Filter { get; set; }
+
+    [Parameter]
+    public EventCallback<StockFilter> FilterChanged { get; set; }
+}
