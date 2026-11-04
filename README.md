@@ -6,7 +6,13 @@ Webová aplikace v .NET 10 pro správu skladu produktů s jednou filtrovatelnou 
 
 ![Architektura aplikace](docs/architecture.svg)
 
-Diagram vytváří `dotnet build` z `docs/architecture.dot`, pokud je nainstalovaný Graphviz.
+Diagram vytváří `dotnet build` z `docs/architecture.dot` a ukládá ho do `docs/architecture.svg` a `docs/architecture.png`. Potřebuje k tomu [Graphviz](https://graphviz.org/download/) s příkazem `dot`, na Ubuntu nebo Debianu:
+
+```bash
+sudo apt install graphviz
+```
+
+Bez Graphvizu build normálně projde a diagram se jen nepřekreslí. Aplikace ho ke spuštění nepotřebuje.
 
 ## Spuštění
 

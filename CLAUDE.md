@@ -18,6 +18,7 @@ dotnet run --project src/StockManager.Server
 
 - No primary constructors on classes. Use an explicit constructor and `private readonly _field`s. Positional records are fine.
 - Keep members as private as possible. Tests go through the public API, not internals.
+- Use the classic switch statement (`switch (value) { case X: ... }`), no switch expressions. Cases assign a variable and end with `break`, and the method returns the variable after the switch.
 - Every test method gets a `///` summary saying what it tests: the scenario and the expected result. Test classes get a summary of what the whole class covers.
 
 ## Database

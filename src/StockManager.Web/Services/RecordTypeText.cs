@@ -6,10 +6,25 @@ namespace StockManager.Web.Services;
 public static class RecordTypeText
 {
     /// <summary>Returns the name of the record type.</summary>
-    public static string GetName(RecordType type) => type switch
+    public static string GetName(RecordType type)
     {
-        RecordType.Client => "Klient",
-        RecordType.Category => "Kategorie",
-        _ => "Produkt",
-    };
+        string name;
+
+        switch (type)
+        {
+            case RecordType.Client:
+                name = "Klient";
+                break;
+            case RecordType.Category:
+                name = "Kategorie";
+                break;
+            case RecordType.Product:
+                name = "Produkt";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+
+        return name;
+    }
 }

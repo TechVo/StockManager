@@ -141,12 +141,21 @@ public sealed class StockEndpointsTests : IDisposable
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         // save the record without a code
-        var entry = db.Add<object>(type switch
+        object record;
+        switch (type)
         {
-            "client" => new Client { Name = "New name" },
-            "category" => new Category { Name = "New name" },
-            _ => new Product { Name = "New name" },
-        });
+            case "client":
+                record = new Client { Name = "New name" };
+                break;
+            case "category":
+                record = new Category { Name = "New name" };
+                break;
+            default:
+                record = new Product { Name = "New name" };
+                break;
+        }
+
+        var entry = db.Add<object>(record);
         await db.SaveChangesAsync();
 
         Assert.Equal(expectedCode, entry.Property<string>("Code").CurrentValue);

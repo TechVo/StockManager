@@ -101,12 +101,27 @@
     }
 
     /// <summary>Returns the filter that selects the stock rows of one record.</summary>
-    private static StockFilter CreateFilter(RecordType type, int id) => type switch
+    private static StockFilter CreateFilter(RecordType type, int id)
     {
-        RecordType.Client => StockFilter.CreateEmpty() with { ClientIds = [id] },
-        RecordType.Category => StockFilter.CreateEmpty() with { CategoryIds = [id] },
-        _ => StockFilter.CreateEmpty() with { ProductIds = [id] },
-    };
+        var filter = StockFilter.CreateEmpty();
+
+        switch (type)
+        {
+            case RecordType.Client:
+                filter = filter with { ClientIds = [id] };
+                break;
+            case RecordType.Category:
+                filter = filter with { CategoryIds = [id] };
+                break;
+            case RecordType.Product:
+                filter = filter with { ProductIds = [id] };
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
+
+        return filter;
+    }
 
     /// <summary>Updates the saved quantity in the local rows, so that sorting by quantity stays correct.</summary>
     private void OnQuantitySaved((StockRowDto Row, int Quantity) saved) =>

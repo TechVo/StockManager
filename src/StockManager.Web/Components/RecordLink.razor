@@ -35,12 +35,28 @@
     public required string Name { get; set; }
 
     /// <summary>Text of the button for the current result of copying.</summary>
-    private string Title => _copied switch
+    private string Title
     {
-        true => "Zkopírováno",
-        false => "Nelze kopírovat",
-        null => "Kopírovat kód",
-    };
+        get
+        {
+            string title;
+
+            switch (_copied)
+            {
+                case true:
+                    title = "Zkopírováno";
+                    break;
+                case false:
+                    title = "Nelze kopírovat";
+                    break;
+                default:
+                    title = "Kopírovat kód";
+                    break;
+            }
+
+            return title;
+        }
+    }
 
     /// <summary>Copies the code to the clipboard and shows the result on the button.</summary>
     private async Task CopyAsync()

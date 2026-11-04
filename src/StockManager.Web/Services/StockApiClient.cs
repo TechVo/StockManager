@@ -12,6 +12,8 @@ public sealed class StockApiClient
 {
     private const string SaveFailedMessage = "Uložení se nezdařilo.";
 
+    private const string ProductNotFoundMessage = "Klient tento produkt nemá.";
+
     private readonly HttpClient _http;
 
     /// <summary>Message for a quantity that is not an allowed whole number.</summary>
@@ -53,13 +55,25 @@ public sealed class StockApiClient
             var response = await _http.PutAsJsonAsync($"api/stock/{clientId}/{productId}", request);
 
             // convert the response to a message for the user
-            return response.StatusCode switch
+            string? message;
+
+            switch (response.StatusCode)
             {
-                HttpStatusCode.NoContent => null,
-                HttpStatusCode.BadRequest => InvalidQuantityMessage,
-                HttpStatusCode.NotFound => "Klient tento produkt nemá.",
-                _ => SaveFailedMessage,
-            };
+                case HttpStatusCode.NoContent:
+                    message = null;
+                    break;
+                case HttpStatusCode.BadRequest:
+                    message = InvalidQuantityMessage;
+                    break;
+                case HttpStatusCode.NotFound:
+                    message = ProductNotFoundMessage;
+                    break;
+                default:
+                    message = SaveFailedMessage;
+                    break;
+            }
+
+            return message;
         }
         catch (HttpRequestException)
         {
@@ -86,12 +100,23 @@ public sealed class StockApiClient
     /// <summary>Returns the API address of a record of the given type.</summary>
     private static string GetRecordUri(RecordType type, string code)
     {
-        var collection = type switch
+        string collection;
+
+        // each record type has its own collection in the API
+        switch (type)
         {
-            RecordType.Client => "clients",
-            RecordType.Category => "categories",
-            _ => "products",
-        };
+            case RecordType.Client:
+                collection = "clients";
+                break;
+            case RecordType.Category:
+                collection = "categories";
+                break;
+            case RecordType.Product:
+                collection = "products";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(type), type, null);
+        }
 
         return $"api/{collection}/{Uri.EscapeDataString(code)}";
     }

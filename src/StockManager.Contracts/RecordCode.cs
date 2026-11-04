@@ -36,6 +36,11 @@ public static class RecordCode
             return RecordType.Category;
         }
 
-        return code.StartsWith(ProductPrefix, StringComparison.Ordinal) ? RecordType.Product : null;
+        if (code.StartsWith(ProductPrefix, StringComparison.Ordinal))
+        {
+            return RecordType.Product;
+        }
+
+        return null;
     }
 }
