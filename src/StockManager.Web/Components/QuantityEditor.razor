@@ -1,18 +1,24 @@
-@* Number input of one grid row. After a change it shows the old and the new value with a button that saves the new one,
-   and Enter does the same.
+@* Number input of one grid row. After a change it shows the old and the new value, a button that saves the new one
+   and an icon button that returns the saved one. Enter also saves.
    The input is read only during the save, so that a late response cannot replace a newer value. *@
 @inject StockApiClient Api
 
 <div class="quantity-editor">
-    <input type="number" min="0" max="@UpdateStockRequest.MaxQuantity" step="1"
+    <input @key="_inputVersion" type="number" min="0" max="@UpdateStockRequest.MaxQuantity" step="1"
            class="@(_error is null ? null : "invalid")"
            aria-label="@($"Počet kusů: {Row.ProductName}, {Row.ClientName}")"
            readonly="@_saving"
            value="@Row.Quantity" @oninput="OnInput" @onkeydown="OnKeyDownAsync" />
     @if (_unsavedText is not null)
     {
-        <span class="quantity-change">@Row.Quantity → @_unsavedText</span>
         <button type="button" disabled="@_saving" @onclick="SaveAsync">Uložit</button>
+        <button type="button" class="reset-button" title="Zahodit změnu" aria-label="Zahodit změnu" disabled="@_saving" @onclick="Reset">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 3-6.7" />
+                <path d="M3 4v5h5" />
+            </svg>
+        </button>
+        <span class="quantity-change">@Row.Quantity → @_unsavedText</span>
     }
     @if (_error is not null)
     {
@@ -26,6 +32,7 @@
 
 @code {
     private string? _unsavedText;
+    private int _inputVersion;
     private string? _error;
     private bool _saved;
     private bool _saving;
@@ -44,6 +51,16 @@
         _unsavedText = text == Row.Quantity.ToString() ? null : text;
         _error = null;
         _saved = false;
+    }
+
+    /// <summary>Returns the input to the saved value and removes the error of the changed value.</summary>
+    private void Reset()
+    {
+        // a new input shows the saved value, because the rendered value of the old one did not change and Blazor would not update it
+        _inputVersion++;
+
+        _unsavedText = null;
+        _error = null;
     }
 
     /// <summary>Saves the value when the user presses Enter.</summary>

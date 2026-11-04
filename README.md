@@ -16,13 +16,17 @@ Bez Graphvizu build normálně projde a diagram se jen nepřekreslí. Aplikace h
 
 ## Spuštění
 
-Potřeba je jen .NET 10 SDK.
+Potřeba je jen [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Stačí spustit server, klienta posílá prohlížeči sám:
 
 ```bash
+git clone https://github.com/TechVo/StockManager.git
+cd StockManager
 dotnet run --project src/StockManager.Server
 ```
 
-Aplikace běží na `http://localhost:5080`. Při prvním spuštění vytvoří `src/StockManager.Server/stock.db` a naplní ji testovacími daty ze souboru [seed.sql](src/StockManager.Server/Data/seed.sql).
+Potom otevřete v prohlížeči `http://localhost:5080`. Aplikaci ukončíte klávesami `Ctrl+C`. Při změnách v kódu se hodí `dotnet watch --project src/StockManager.Server`, který aplikaci průběžně aktualizuje.
+
+Při prvním spuštění vytvoří `src/StockManager.Server/stock.db` a naplní ji testovacími daty ze souboru [seed.sql](src/StockManager.Server/Data/seed.sql).
 
 Existující databáze se znovu nenaplňuje, takže změny počtů kusů přežijí restart. Návrat k výchozím datům, například po úpravě souboru s daty:
 
@@ -57,7 +61,7 @@ dotnet test
 ## Rozhodnutí
 
 - **Řádek gridu je dvojice klient a produkt.** Počet kusů patří k této dvojici, takže produkt ve více kategoriích má jeden řádek s kategoriemi vedle sebe a stejné množství se v gridu neopakuje.
-- **Klient vidí produkt, pokud s ním sdílí aspoň jednu kategorii.** U řádku se ukazují jen tyto společné kategorie a jen podle nich funguje filtr kategorií.
+- **Klient vidí produkt, pokud s ním sdílí alespoň jednu kategorii.** U řádku se ukazují jen tyto společné kategorie a jen podle nich funguje filtr kategorií.
 - **Klienti, kategorie a produkty mají neměnný kód.** Kód vrací i seznamy `/api/clients`, `/api/categories` a `/api/products`, takže přejmenování nic nerozbije. Kód (`KLI_000001`, `KAT_000001`, `PROD_000001`) generuje databáze z id, které se nikdy nepoužije znovu, takže ho nejde změnit ani zduplikovat. Testovací data v `seed.sql` určují id a odkazují se na záznamy kódem. Vazby v databázi a filtr gridu používají interní id.
 - **Detail a hledání podle kódu.** Každý klient, kategorie a produkt má stránku `/detail/{kód}`. Hledání ve filtru pozná typ záznamu podle předpony (`KLI_`, `KAT_`, `PROD_`) a detail otevře. Malá písmena a mezery okolo kódu nevadí. Detail otevře i kliknutí na klienta, kategorii nebo produkt v gridu a po najetí na odkaz se zobrazí kód s ikonou pro kopírování. Detail jen zobrazuje údaje a řádky skladu daného záznamu, měnit jde stejně jako v gridu jen počet kusů.
 - **Počet kusů se ukládá tlačítkem nebo Enterem.** Tlačítko se zobrazí až po změně spolu s rozdílem, například `3 → 5`, takže šipky číselného pole neposílají požadavek při každém kroku.
