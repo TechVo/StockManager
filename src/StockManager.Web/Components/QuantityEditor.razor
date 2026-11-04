@@ -1,5 +1,6 @@
 @* Number input of one grid row. After a change it shows the old and the new value, a button that saves the new one
-   and an icon button that returns the saved one. Enter also saves.
+   and an icon button that returns the saved one. Enter also saves. The browser does not allow other characters than digits
+   to be typed, pasted or dropped, and this runs in JavaScript because Blazor cannot cancel only some key presses.
    The input is read only during the save, so that a late response cannot replace a newer value. *@
 @inject StockApiClient Api
 
@@ -8,6 +9,8 @@
            class="@(_error is null ? null : "invalid")"
            aria-label="@($"Počet kusů: {Row.ProductName}, {Row.ClientName}")"
            readonly="@_saving"
+           inputmode="numeric"
+           onbeforeinput="const text = event.data ?? event.dataTransfer?.getData('text'); if (text && /\D/.test(text)) event.preventDefault();"
            value="@Row.Quantity" @oninput="OnInput" @onkeydown="OnKeyDownAsync" />
     @if (_unsavedText is not null)
     {
@@ -81,8 +84,8 @@
             return;
         }
 
-        // a value that is not a whole number cannot be sent, the range is checked by the server
-        if (!int.TryParse(_unsavedText, out var quantity))
+        // only a value written with digits can be sent, the range is checked by the server
+        if (!UpdateStockRequest.TryParseQuantity(_unsavedText, out var quantity))
         {
             _error = StockApiClient.InvalidQuantityMessage;
             return;

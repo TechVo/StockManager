@@ -308,13 +308,14 @@ public sealed class StockEndpointsTests : IDisposable
     }
 
     /// <summary>
-    /// A negative quantity, a too high quantity, a missing quantity or a decimal number is rejected with 400 and the stock stays the same.
+    /// A negative quantity, a too high quantity, a missing quantity, a decimal number or a number with an exponent is rejected with 400 and the stock stays the same.
     /// </summary>
     [Theory]
     [InlineData("""{ "quantity": -1 }""")]
     [InlineData("""{ "quantity": 1000001 }""")]
     [InlineData("""{ }""")]
     [InlineData("""{ "quantity": 1.5 }""")]
+    [InlineData("""{ "quantity": 1e5 }""")]
     public async Task Put_InvalidBody_Returns400(string body)
     {
         var alpha = await FindIdAsync("api/clients", "Alpha");
